@@ -98,6 +98,8 @@ vmx_do_ept_fault(struct vmx_vcpu *vcpu, unsigned long gpa,
 extern void vmx_ept_sync_vcpu(struct vmx_vcpu *vcpu);
 extern void vmx_ept_sync_individual_addr(struct vmx_vcpu *vcpu, gpa_t gpa);
 
+extern void vmx_dump_vcpu_to_user_thread(struct thread_struct *thread);
+
 static __always_inline unsigned long vmcs_readl(unsigned long field)
 {
         unsigned long value;

@@ -27,6 +27,7 @@
 #include "dune.h"
 #include "vmx.h"
 #include "preempttrap.h"
+#include "coredump.h"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("A driver for Dune");
@@ -74,6 +75,7 @@ static long dune_dev_ioctl(struct file *filp,
 
 	switch (ioctl) {
 	case DUNE_ENTER:
+
 		r = copy_from_user(&conf, (int __user *) arg,
 				   sizeof(struct dune_config));
 		if (r) {
@@ -85,6 +87,7 @@ static long dune_dev_ioctl(struct file *filp,
 		if (r)
 			break;
 
+		printk(KERN_INFO "Copying out config\n");
 		r = copy_to_user((void __user *)arg, &conf,
 				 sizeof(struct dune_config));
 		if (r) {
@@ -116,6 +119,17 @@ static long dune_dev_ioctl(struct file *filp,
 
 	case DUNE_TRAP_DISABLE:
 		r = dune_trap_disable(arg);
+		break;
+
+	case DUNE_COREDUMP:
+		r = copy_from_user(&conf, (int __user *) arg,
+				   sizeof(struct dune_config));
+		if (r) {
+			r = -EIO;
+			goto out;
+		}
+
+		r = dune_dump_core(&conf);
 		break;
 
 	default:

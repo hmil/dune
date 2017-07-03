@@ -1507,6 +1507,7 @@ static int vmx_handle_ept_violation(struct vmx_vcpu *vcpu)
 static void vmx_handle_syscall(struct vmx_vcpu *vcpu)
 {
 	__u64 orig_rax;
+	printk(KERN_INFO "vmx: handling syscall...\n");
 
 	if (unlikely(vcpu->regs[VCPU_REGS_RAX] > NUM_SYSCALLS)) {
 		vcpu->regs[VCPU_REGS_RAX] = -EINVAL;
@@ -1550,6 +1551,7 @@ static void vmx_handle_syscall(struct vmx_vcpu *vcpu)
 		[r9]"i"(offsetof(struct vmx_vcpu, regs[VCPU_REGS_R9]))
 	      : "cc", "memory", R"ax", R"dx", R"di", R"si", "r8", "r9", "r10"
 	);
+	printk(KERN_INFO "vmx: syscall handled?\n");
 
 	/* We apply the restart semantics as if no signal handler will be
 	 * executed. */
@@ -1557,18 +1559,21 @@ static void vmx_handle_syscall(struct vmx_vcpu *vcpu)
 	case -ERESTARTNOHAND:
 	case -ERESTARTSYS:
 	case -ERESTARTNOINTR:
+		printk(KERN_INFO "vmx: syscall went to branch 1\n");
 		vcpu->regs[VCPU_REGS_RAX] = orig_rax;
 		vmx_get_cpu(vcpu);
 		vmcs_writel(GUEST_RIP, vmcs_readl(GUEST_RIP) - 3);
 		vmx_put_cpu(vcpu);
 		break;
 	case -ERESTART_RESTARTBLOCK:
+	printk(KERN_INFO "vmx: syscall went to branch 2\n");
 		vcpu->regs[VCPU_REGS_RAX] = __NR_restart_syscall;
 		vmx_get_cpu(vcpu);
 		vmcs_writel(GUEST_RIP, vmcs_readl(GUEST_RIP) - 3);
 		vmx_put_cpu(vcpu);
 		break;
 	}
+
 }
 
 static void vmx_handle_cpuid(struct vmx_vcpu *vcpu)
@@ -1601,6 +1606,9 @@ static int vmx_handle_nmi_exception(struct vmx_vcpu *vcpu)
 	return -EIO;
 }
 
+// SUPER-DIRTY hack to pass the vcpu to core_dump
+static struct vmx_vcpu *global_vcpu = NULL;
+
 /**
  * vmx_launch - the main loop for a VMX Dune process
  * @conf: the launch configuration
@@ -1613,11 +1621,15 @@ int vmx_launch(struct dune_config *conf, int64_t *ret_code)
 	if (!vcpu)
 		return -ENOMEM;
 
+	global_vcpu = vcpu;
+
 	printk(KERN_ERR "vmx: created VCPU (VPID %d)\n",
 	       vcpu->vpid);
 
 	while (1) {
+		printk(KERN_INFO "Locking cpu\n");
 		vmx_get_cpu(vcpu);
+		printk(KERN_INFO "CPU locked\n");
 
 		/*
 		 * We assume that a Dune process will always use
@@ -1649,7 +1661,11 @@ int vmx_launch(struct dune_config *conf, int64_t *ret_code)
 
 		setup_perf_msrs(vcpu);
 
+		printk(KERN_INFO "vmx: guest ENTER\n");
+
 		ret = vmx_run_vcpu(vcpu);
+
+		printk(KERN_INFO "vmx: guest EXIT\n");
 
 		/* We need to handle NMIs before interrupts are enabled */
 		exit_intr_info = vmcs_read32(VM_EXIT_INTR_INFO);
@@ -1871,4 +1887,16 @@ void vmx_exit(void)
 	on_each_cpu(vmx_disable, NULL, 1);
 	vmx_free_vmxon_areas();
 	free_page((unsigned long)msr_bitmap);
+}
+
+void vmx_dump_vcpu_to_user_thread(struct thread_struct *thread) {
+	printk(KERN_INFO "Copying vmx cpu state to user thread\n");
+	if (global_vcpu == NULL) {
+		printk(KERN_INFO "GLOBAL VCPU NOT INITIALIZED\n");
+		return;
+	}
+	vmx_get_cpu(global_vcpu);
+	thread->sp0 = vmcs_readl(GUEST_RSP);
+	vmx_put_cpu(global_vcpu);
+	printk(KERN_INFO "Guest stack=%016lx\n", thread->sp0);
 }
