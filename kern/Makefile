@@ -13,7 +13,8 @@ dune-objs := \
 	core.o \
 	vmx.o \
 	ept.o \
-	preempttrap.o
+	preempttrap.o \
+	coredump.o
 
 # KSRC should be set to the path to your sources
 # modules are installed into KMISC
@@ -26,8 +27,11 @@ KMISC_INC := /lib/modules/$(KVER)/include
 SYSCALL_TBL = 0x$(shell $(EXTRACT) sys_call_table)
 DO_FORK = 0x$(shell $(EXTRACT) do_fork)
 _DO_FORK = 0x$(shell $(EXTRACT) _do_fork)
+DO_COREDUMP = 0x$(shell $(EXTRACT) do_coredump)
+TASK_USER_REGSET_VIEW = 0x$(shell $(EXTRACT) task_user_regset_view)
 
 CFLAGS_vmx.o = -DSYSCALL_TBL=$(SYSCALL_TBL) -DDO_FORK=$(DO_FORK) -D_DO_FORK=$(_DO_FORK)
+CFLAGS_coredump.o = -DDO_COREDUMP=$(DO_COREDUMP) -DTASK_USER_REGSET_VIEW=$(TASK_USER_REGSET_VIEW)
 
 # KSRC_OUTPUT should be overridden if you are using a 2.6 kernel that
 # has it's output sent elsewhere via KBUILD_OUTPUT= or O=

@@ -6,10 +6,12 @@
 
 #include <sys/queue.h>
 #include <stdbool.h>
+#include <fcntl.h>
 
 #include "mmu.h"
 #include "elf.h"
 #include "fpu.h"
+#include "coredump.h"
 #include "../kern/dune.h"
 
 typedef void (*sighandler_t)(int);

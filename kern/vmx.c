@@ -1601,6 +1601,10 @@ static int vmx_handle_nmi_exception(struct vmx_vcpu *vcpu)
 	return -EIO;
 }
 
+// FIXME: Hacky way to pass the vcpu between vmx_launch and the core_dump IOCTL call
+// There's got to be a better way to do so.
+static struct vmx_vcpu *global_vcpu = NULL;
+
 /**
  * vmx_launch - the main loop for a VMX Dune process
  * @conf: the launch configuration
@@ -1612,6 +1616,8 @@ int vmx_launch(struct dune_config *conf, int64_t *ret_code)
 	struct vmx_vcpu *vcpu = vmx_create_vcpu(conf);
 	if (!vcpu)
 		return -ENOMEM;
+
+	global_vcpu = vcpu;
 
 	printk(KERN_ERR "vmx: created VCPU (VPID %d)\n",
 	       vcpu->vpid);
@@ -1871,4 +1877,12 @@ void vmx_exit(void)
 	on_each_cpu(vmx_disable, NULL, 1);
 	vmx_free_vmxon_areas();
 	free_page((unsigned long)msr_bitmap);
+}
+
+__u64 vmx_get_sp(void) {
+	__u64 sp;
+	vmx_get_cpu(global_vcpu);
+	sp = vmcs_readl(GUEST_RSP);
+	vmx_put_cpu(global_vcpu);
+	return sp;
 }

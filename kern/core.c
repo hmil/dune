@@ -27,6 +27,7 @@
 #include "dune.h"
 #include "vmx.h"
 #include "preempttrap.h"
+#include "coredump.h"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("A driver for Dune");
@@ -116,6 +117,10 @@ static long dune_dev_ioctl(struct file *filp,
 
 	case DUNE_TRAP_DISABLE:
 		r = dune_trap_disable(arg);
+		break;
+
+	case DUNE_COREDUMP:
+		r = dune_dump_core(&conf);
 		break;
 
 	default:
