@@ -36,14 +36,6 @@ int main(int argc, char *argv[], char *envp[])
 {
 	int ret;
 
-	puts("This runs in linux");
-
-	puts("## Initial map:");
-	dune_procmap_dump();
-	fflush(stdout);
-	puts("## End initial map");
-	fflush(stdout);
-
 	if ((ret = dune_init(0)))
 		return ret;
 	
@@ -52,10 +44,11 @@ int main(int argc, char *argv[], char *envp[])
 		return ret;
 	}
 
-	puts("## Dune map:");
+	puts("## Process map:");
+	// Shows the procmap for comparison with the core file
 	dune_procmap_dump();
 	fflush(stdout);
-	puts("## End dune map");
+	puts("## End process map");
 	fflush(stdout);
 
 	return the_loop(stdin);

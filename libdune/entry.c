@@ -431,10 +431,6 @@ static void map_stack(void)
 	dune_procmap_iterate(map_stack_cb);
 }
 
-// Hack to pass the config to core_dump.
-// TODO: look for a better solution
-struct dune_config *global_conf = NULL;
-
 static int do_dune_enter(struct dune_percpu *percpu)
 {
 	struct dune_config *conf;
@@ -443,7 +439,6 @@ static int do_dune_enter(struct dune_percpu *percpu)
 	map_stack();
 
 	conf = malloc(sizeof(struct dune_config));
-	global_conf = conf;
 
 	conf->vcpu = 0;
 	conf->rip = (__u64) &__dune_ret;
@@ -642,7 +637,6 @@ int dune_init(bool map_full)
 		case SIGKILL:
 		case SIGCHLD:
 		case SIGINT:
-		case SIGSEGV:
 		case SIGTERM:
 			continue;
 		}
